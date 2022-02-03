@@ -11,7 +11,23 @@ const URL_LOGIN = 'https://id.handelsblatt.com/login/credentials?service=https%3
 const URL_CLAIM = 'https://epaper.handelsblatt.com/';
 const TIMEOUT = 20 * 1000; // 20s, default is 30s
 
-const urls = [URL_CLAIM];
+let urls = [URL_CLAIM];
+if (process.argv[2] == 'range') {
+  // example: https://epaper.handelsblatt.com/read/11/11/2022-01-06/1
+  if (process.argv.length != 5) {
+    console.error('Usage: node handelsblatt range 2022-01-13 2022-02-03');
+    process.exit(1);
+  }
+  const d1 = process.argv[3];
+  const d2 = process.argv[4];
+  // https://stackoverflow.com/questions/4413590/javascript-get-array-of-dates-between-2-dates
+  var dateRange = (s,e) => { for(var a=[],d=new Date(s); d <= new Date(e); d.setDate(d.getDate()+1)){ a.push(new Date(d));}return a; };
+  const dates = dateRange(d1, d2).map(d => d.toISOString().split('T')[0]);
+  // console.log(dates);
+  urls = dates.map(d => `https://epaper.handelsblatt.com/read/11/11/${d}/1`);
+  console.log('Will try to download the following:');
+  console.log(urls);
+}
 
 // could change to .mjs to get top-level-await, but would then also need to change require to import and dynamic import for stealth below would just add more async/await
 (async () => {
@@ -57,6 +73,7 @@ const urls = [URL_CLAIM];
   for (const url of urls) {
     if (url != URL_CLAIM)
       await page.goto(url, {waitUntil: 'domcontentloaded'}); // default 'load' takes too long
+    console.log(url);
     // await page.hover('div:has-text("Download")');
     await page.hover('div.fup-menu-item-download');
     await page.click('span:has-text("Gesamte Ausgabe")');
