@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "login": "node handelsblatt login",
+    "start": "node handelsblatt"
+  },
+  "devDependencies": {
+    "playwright": "^1.17.1"
+  }
+}
