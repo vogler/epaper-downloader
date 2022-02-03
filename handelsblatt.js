@@ -86,11 +86,12 @@ if (process.argv[2] == 'range') {
       page.click('div.fup-download-button'),
     ]);
     // Downloads are put in a temporary folder and deleted when the browser context is closed, so need to save it.
-    // console.log(await download.path()); // temporary file path
-    const filename = await download.suggestedFilename();
+    // console.log(await download.path()); // temporary file path, waits for download to finish
+    const filename = download.suggestedFilename();
     const fp = path.resolve(DLDIR, filename);
     if (fs.existsSync(fp)) { // TODO add an option for this? maybe we do want to download it again?
       console.log(filename, 'already exists!');
+      await download.cancel(); // helps or already downloaded here?
     } else {
       console.log('download', filename);
       await download.saveAs(fp); // this will create non-existing directories and overwrite the file if it already exists
