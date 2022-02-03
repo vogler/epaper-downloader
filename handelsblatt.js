@@ -1,10 +1,12 @@
 //@ts-check
 const { chromium } = require('playwright');
 const path = require('path');
+const fs = require('fs');
 const debug = process.env.PWDEBUG == '1'; // runs non-headless and opens https://playwright.dev/docs/inspector
 const login = process.argv.includes('login', 2);
 const headless = !debug && !login;
 
+const DLDIR = 'downloads'; // directory where to save downloads to
 const URL_LOGIN = 'https://id.handelsblatt.com/login/credentials?service=https%3A%2F%2Fepaper.handelsblatt.com%2Fread';
 const URL_CLAIM = 'https://epaper.handelsblatt.com/';
 const TIMEOUT = 20 * 1000; // 20s, default is 30s
@@ -63,8 +65,13 @@ const TIMEOUT = 20 * 1000; // 20s, default is 30s
   // Downloads are put in a temporary folder and deleted when the browser context is closed, so need to save it.
   // console.log(await download.path()); // temporary file path
   const filename = await download.suggestedFilename();
-  console.log('download', filename);
-  await download.saveAs(path.resolve('downloads', filename));
+  const fp = path.resolve(DLDIR, filename);
+  if (fs.existsSync(fp)) { // TODO add an option for this? maybe we do want to download it again?
+    console.log(filename, 'already exists!');
+  } else {
+    console.log('download', filename);
+    await download.saveAs(fp); // this will create non-existing directories and overwrite the file if it already exists
+  }
   // await page.pause();
   await context.close();
 })();
