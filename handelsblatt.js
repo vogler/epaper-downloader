@@ -11,6 +11,8 @@ const URL_LOGIN = 'https://id.handelsblatt.com/login/credentials?service=https%3
 const URL_CLAIM = 'https://epaper.handelsblatt.com/';
 const TIMEOUT = 20 * 1000; // 20s, default is 30s
 
+const urls = [URL_CLAIM];
+
 // could change to .mjs to get top-level-await, but would then also need to change require to import and dynamic import for stealth below would just add more async/await
 (async () => {
   // https://playwright.dev/docs/auth#multi-factor-authentication
@@ -51,27 +53,32 @@ const TIMEOUT = 20 * 1000; // 20s, default is 30s
     context.setDefaultTimeout(TIMEOUT);
   }
   console.log('Signed in.');
-  // await page.hover('div:has-text("Download")');
-  await page.hover('div.fup-menu-item-download');
-  await page.click('span:has-text("Gesamte Ausgabe")');
-  await page.click('label:has-text("Ich stimme zu.")');
-  // https://playwright.dev/docs/downloads
-  // Promise.all prevents a race condition between clicking and waiting for the download.
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    // could also try has-text, but there are two Download buttons now
-    page.click('div.fup-download-button'),
-  ]);
-  // Downloads are put in a temporary folder and deleted when the browser context is closed, so need to save it.
-  // console.log(await download.path()); // temporary file path
-  const filename = await download.suggestedFilename();
-  const fp = path.resolve(DLDIR, filename);
-  if (fs.existsSync(fp)) { // TODO add an option for this? maybe we do want to download it again?
-    console.log(filename, 'already exists!');
-  } else {
-    console.log('download', filename);
-    await download.saveAs(fp); // this will create non-existing directories and overwrite the file if it already exists
+
+  for (const url of urls) {
+    if (url != URL_CLAIM)
+      await page.goto(url, {waitUntil: 'domcontentloaded'}); // default 'load' takes too long
+    // await page.hover('div:has-text("Download")');
+    await page.hover('div.fup-menu-item-download');
+    await page.click('span:has-text("Gesamte Ausgabe")');
+    await page.click('label:has-text("Ich stimme zu.")');
+    // https://playwright.dev/docs/downloads
+    // Promise.all prevents a race condition between clicking and waiting for the download.
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      // could also try has-text, but there are two Download buttons now
+      page.click('div.fup-download-button'),
+    ]);
+    // Downloads are put in a temporary folder and deleted when the browser context is closed, so need to save it.
+    // console.log(await download.path()); // temporary file path
+    const filename = await download.suggestedFilename();
+    const fp = path.resolve(DLDIR, filename);
+    if (fs.existsSync(fp)) { // TODO add an option for this? maybe we do want to download it again?
+      console.log(filename, 'already exists!');
+    } else {
+      console.log('download', filename);
+      await download.saveAs(fp); // this will create non-existing directories and overwrite the file if it already exists
+    }
+    // await page.pause();
   }
-  // await page.pause();
   await context.close();
 })();
