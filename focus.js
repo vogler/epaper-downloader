@@ -6,16 +6,16 @@ const debug = process.env.PWDEBUG == '1'; // runs non-headless and opens https:/
 const login = process.argv.includes('login', 2);
 const headless = !debug && !login;
 
-const DLDIR = 'downloads'; // directory where to save downloads to
-const URL_LOGIN = 'https://id.handelsblatt.com/login/credentials?service=https%3A%2F%2Fepaper.handelsblatt.com%2Fread';
-const URL_CLAIM = 'https://epaper.handelsblatt.com/';
+const DLDIR = 'downloads/focus'; // directory where to save downloads to
+const URL_LOGIN = 'https://focus-epaper.de/login';
+const URL_CLAIM = 'https://focus-epaper.de/ausgaben';
 const TIMEOUT = 20 * 1000; // 20s, default is 30s
 
-let urls = [URL_CLAIM];
+let urls = [];
 if (process.argv[2] == 'range') {
-  // example: https://epaper.handelsblatt.com/read/11/11/2022-01-06/1
+  // example: https://focus-epaper.de/download/9873
   if (process.argv.length != 5) {
-    console.error('Usage: node handelsblatt range 2022-01-13 2022-02-03');
+    console.error('Usage: node handelsblatt range 52/2021 06/2022');
     process.exit(1);
   }
   const d1 = process.argv[3];
@@ -24,12 +24,14 @@ if (process.argv[2] == 'range') {
   var dateRange = (s,e) => { for(var a=[],d=new Date(s); d <= new Date(e); d.setDate(d.getDate()+1)){ a.push(new Date(d));}return a; };
   const dates = dateRange(d1, d2).map(d => d.toISOString().split('T')[0]);
   // console.log(dates);
-  urls = dates.map(d => `https://epaper.handelsblatt.com/read/11/11/${d}/1`);
+  console.error('range not supported yet');
+  process.exit(1);
+  urls = dates.map(d => `https://focus-epaper.de/download/${d}`);
   console.log('Will try to download the following:');
   console.log(urls);
 }
 
-// could change to .mjs to get top-level-await, but would then also need to change require to import and dynamic import for stealth below would just add more async/await
+// could change to .mjs to get top-level-await, but would then also need to change require to import and dynamic import for stealth would just add more async/await
 (async () => {
   // https://playwright.dev/docs/auth#multi-factor-authentication
   const context = await chromium.launchPersistentContext(path.resolve(__dirname, 'userDataDir'), {
@@ -52,38 +54,41 @@ if (process.argv[2] == 'range') {
   };
 
   await page.goto(URL_CLAIM, {waitUntil: 'domcontentloaded'}); // default 'load' takes too long
-  // @ts-ignore https://caniuse.com/?search=promise.any
-  await Promise.any(['Anmelden', 'Abmelden'].map(s => page.waitForSelector(`div:has-text("${s}")`))); // wait for button with login status
-  while (await page.locator('div:has-text("Anmelden")').count() > 0) {
+  // will redirect to login page if not logged in
+  while (page.url() != URL_CLAIM) { 
     console.error('Not signed in anymore!');
     if (headless) {
-      console.log('Please run `node handelsblatt login` to login in the browser.');
+      console.log('Please run `node focus login` to login in the browser.');
       await context.close(); // not needed?
       process.exit(1);
     }
     console.log("Please login and then navigate back or restart the script.");
     context.setDefaultTimeout(0); // give user time to log in without timeout
-    await page.goto(URL_LOGIN, {waitUntil: 'domcontentloaded'});
+    // await page.goto(URL_LOGIN, {waitUntil: 'domcontentloaded'});
+    console.log(page.url()); // should automatically have been redirected to login page
     await clickIfExists('button:has-text("zustimmen")'); // to not waste screen space in --debug
     await page.waitForNavigation({url: URL_CLAIM});
     context.setDefaultTimeout(TIMEOUT);
   }
+  await page.waitForSelector('span:has-text("Eingeloggt als")');
   console.log('Signed in.');
 
-  for (const url of urls) {
-    if (url != URL_CLAIM)
-      await page.goto(url, {waitUntil: 'domcontentloaded'}); // default 'load' takes too long
-    console.log(url);
-    // await page.hover('div:has-text("Download")');
-    await page.hover('div.fup-menu-item-download');
-    await page.click('span:has-text("Gesamte Ausgabe")');
-    await page.click('label:has-text("Ich stimme zu.")');
+  // console.log(await page.locator('article h5').first().textContent());
+  // console.log(await page.locator('a:has-text("Download")').first().getAttribute('href'));
+
+  const epapers = await page.$$('article');
+  let n = 0;
+  for (const epaper of epapers) {
+    const title = await (await epaper.$('h5')).textContent();
+    const dlbtn = await epaper.$('a:has-text("Download")');
+    const url = await dlbtn.getAttribute('href');
+    console.log(title, url);
+
     // https://playwright.dev/docs/downloads
     // Promise.all prevents a race condition between clicking and waiting for the download.
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      // could also try has-text, but there are two Download buttons now
-      page.click('div.fup-download-button'),
+      dlbtn.click(),
     ]);
     // Downloads are put in a temporary folder and deleted when the browser context is closed, so need to save it.
     // console.log(await download.path()); // temporary file path, waits for download to finish
@@ -97,6 +102,8 @@ if (process.argv[2] == 'range') {
       await download.saveAs(fp); // this will create non-existing directories and overwrite the file if it already exists
     }
     // await page.pause();
+    n++;
+    if (n == 1) break; // only download the first file, TODO option to download last n epapers? TODO range
   }
   await context.close();
 })();

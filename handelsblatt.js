@@ -6,7 +6,7 @@ const debug = process.env.PWDEBUG == '1'; // runs non-headless and opens https:/
 const login = process.argv.includes('login', 2);
 const headless = !debug && !login;
 
-const DLDIR = 'downloads'; // directory where to save downloads to
+const DLDIR = 'downloads/handelsblatt'; // directory where to save downloads to
 const URL_LOGIN = 'https://id.handelsblatt.com/login/credentials?service=https%3A%2F%2Fepaper.handelsblatt.com%2Fread';
 const URL_CLAIM = 'https://epaper.handelsblatt.com/';
 const TIMEOUT = 20 * 1000; // 20s, default is 30s
@@ -29,7 +29,7 @@ if (process.argv[2] == 'range') {
   console.log(urls);
 }
 
-// could change to .mjs to get top-level-await, but would then also need to change require to import and dynamic import for stealth below would just add more async/await
+// could change to .mjs to get top-level-await, but would then also need to change require to import and dynamic import for stealth would just add more async/await
 (async () => {
   // https://playwright.dev/docs/auth#multi-factor-authentication
   const context = await chromium.launchPersistentContext(path.resolve(__dirname, 'userDataDir'), {
