@@ -11,9 +11,9 @@ Based on https://github.com/vogler/free-games-claimer.
 
 1. [Install Node.js](https://nodejs.org/en/download)
 2. Clone/download this repository and `cd` into it in a terminal
-3. Run `npm install && npx playwright install`
+3. Run `npm install && npx playwright install chromium`
 
-This downloads {chromium, firefox, webkit} (742 MB) to a cache in home ([doc](https://playwright.dev/docs/browsers#managing-browser-binaries)).
+This downloads Chromium (337 MB) to a cache in home ([doc](https://playwright.dev/docs/browsers#managing-browser-binaries)).
 
 Issues:
 - Playwright seems to not run on (headless) RPi? See [issue](https://github.com/vogler/free-games-claimer/issues/3).
