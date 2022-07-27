@@ -75,8 +75,12 @@ if (process.argv[2] == 'range') {
       await page.goto(url, {waitUntil: 'domcontentloaded'}); // default 'load' takes too long
     console.log(url);
     // await page.hover('div:has-text("Download")');
-    await page.hover('div.fup-menu-item-download');
-    await page.click('span:has-text("Gesamte Ausgabe")');
+    if (url == URL_CLAIM) {
+      await page.click('div.download');
+    } else {
+      await page.hover('div.fup-menu-item-download');
+      await page.click('span:has-text("Gesamte Ausgabe")');
+    }
     await page.click('label:has-text("Ich stimme zu.")');
     // https://playwright.dev/docs/downloads
     // Promise.all prevents a race condition between clicking and waiting for the download.
