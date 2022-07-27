@@ -53,7 +53,8 @@ if (process.argv[2] == 'range') {
 
   await page.goto(URL_CLAIM, {waitUntil: 'domcontentloaded'}); // default 'load' takes too long
   // @ts-ignore https://caniuse.com/?search=promise.any
-  await Promise.any(['Anmelden', 'Abmelden'].map(s => page.waitForSelector(`div:has-text("${s}")`))); // wait for button with login status
+  await Promise.any(['Anmelden', 'Abmelden', 'zustimmen'].map(s => page.waitForSelector(`div:has-text("${s}")`))); // wait for button with login status
+  await clickIfExists('button:has-text("zustimmen")');
   while (await page.locator('div:has-text("Anmelden")').count() > 0) {
     console.error('Not signed in anymore!');
     if (headless) {
